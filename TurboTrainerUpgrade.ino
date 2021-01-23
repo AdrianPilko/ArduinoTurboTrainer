@@ -17,9 +17,13 @@ TM1638plus module(STROBE_PIN, CLOCK_PIN, DATA_PIN, freq);
 #define SWITCH_LOAD_DECREASE 1
 
 byte buttons;
+int program = 0;
+// number of time units in 1 minute
+#define MINUTES (60 * 1000)
+#define SECONDS (1000)
 
 unsigned long lastFire = 0;
-
+unsigned long timerSinceStart = 0;
 
 // relay output pins
 #define RELAY_1_PIN 8
@@ -64,7 +68,7 @@ void disableAllRelays()
  
 void loop()
 {
-  char workString[11];
+  char workString[9];
 
   buttons=module.readButtons();
 
@@ -72,43 +76,179 @@ void loop()
   if (millis() - lastFire < 200) return;
   lastFire = millis();
 
+  timerSinceStart += millis();
+
   // handle update currentLoadValue after press, or do other stuff later to use other buttons
   press(buttons);
-  sprintf(workString, "LOAD=%d", currentLoadValue);
+
+  // update program state
+  switch (program)
+  {
+    case 0 : break;
+    case 1 : NormalProgram(); break;
+    case 2 : HITProgram(); break;
+    case 3 : HardProgram(); break;
+    case 4 : LongMixedProgram(); break;
+    default: break;
+  }
+  
+  sprintf(workString, "LD=%dPro%d", currentLoadValue,program);
   module.displayText(workString); 
   module.setLED(currentLoadValue, 1);
   module.setLED(currentLoadValue+1, 0);
   if (currentLoadValue-1 >= 0) module.setLED(currentLoadValue-1, 0);
   
-  Serial.println(buttons);
-  Serial.println(currentLoadValue);
-
-
   switch (currentLoadValue)
   {
     case 0 : disableAllRelays();     break;
     case 1 : switchRelayOn(RELAY_1_PIN); switchRelayOff(RELAY_2_PIN); switchRelayOff(RELAY_3_PIN); switchRelayOff(RELAY_4_PIN); break;  
     case 2 : switchRelayOn(RELAY_1_PIN); switchRelayOn(RELAY_2_PIN); switchRelayOff(RELAY_3_PIN); switchRelayOff(RELAY_4_PIN); break;                   
     case 3 : switchRelayOn(RELAY_1_PIN); switchRelayOn(RELAY_2_PIN); switchRelayOn(RELAY_3_PIN); switchRelayOff(RELAY_4_PIN); break;                     
-    case 4 : switchRelayOn(RELAY_1_PIN); switchRelayOn(RELAY_2_PIN); switchRelayOn(RELAY_3_PIN); switchRelayOn(RELAY_4_PIN); break;     
+    case 4 : switchRelayOn(RELAY_1_PIN); switchRelayOn(RELAY_2_PIN); switchRelayOn(RELAY_3_PIN); switchRelayOn(RELAY_4_PIN); break; 
+    default:     disableAllRelays(); break;
   }                                 
 }
 
+// exercise programs, these are built in presets different resistance profiles 
 
+void NormalProgram()
+{
+   // 18minute total
+   // 3minute low => 5minutes medium power => 2minute high => 5minutes medium => 3minutes low
+   if (timerSinceStart < 3*MINUTES)
+   {
+      currentLoadValue = 1;
+   }
+   else if (timerSinceStart < 8*MINUTES)
+   {
+      currentLoadValue = 2;
+   }
+   else if (timerSinceStart < 10*MINUTES)
+   {
+      currentLoadValue = 3;
+   }
+   else if (timerSinceStart < 15*MINUTES)
+   {
+      currentLoadValue = 2;
+   }
+   else if (timerSinceStart < 18*MINUTES)
+   {
+      currentLoadValue = 1;
+   }
+}
 
+void HITProgram()
+{
+   // 15minute total
+   // 2minute low => 2minutes medium power => 30second max => 1minutes medium => 30seconds max => 1minute medium => 30seconds max => 2minutes low
+   if (timerSinceStart < 2*MINUTES)
+   {
+      currentLoadValue = 1;
+   }
+   else if (timerSinceStart < 3*MINUTES)
+   {
+      currentLoadValue = 2;
+   }
+   else if (timerSinceStart < (3*MINUTES)+(30*SECONDS))
+   {
+      currentLoadValue = 4;
+   }
+   else if (timerSinceStart < (4*MINUTES)+(30*SECONDS))
+   {
+      currentLoadValue = 2;
+   }
+   else if (timerSinceStart < 5*MINUTES)
+   {
+      currentLoadValue = 4;
+   }
+   else if (timerSinceStart < 6*MINUTES)
+   {
+      currentLoadValue = 2;
+   }
+   else if (timerSinceStart < (6*MINUTES)+(30*SECONDS))
+   {
+      currentLoadValue = 4;
+   }
+   else 
+   {
+      currentLoadValue = 1;
+   }
+}
 
-void press(int button) { // Our handler
-  
+void HardProgram()
+{
+  // 15minute total
+   // 2minute low => 2minutes medium power => 30second max => 1minutes medium => 30seconds max => 1minute medium => 30seconds max => 2minutes low
+   if (timerSinceStart < 2*MINUTES)
+   {
+      currentLoadValue = 1;
+   }
+   else if (timerSinceStart < 15*MINUTES)
+   {
+      currentLoadValue = 3;
+   }
+   else 
+   {
+      currentLoadValue = 1;
+   }
+}
+
+void LongMixedProgram()
+{
+  // not yet defined
+  currentLoadValue = 2;
+}
+
+void press(int button) 
+{
+  char workString[20];
+  /// left most button S1, buttons returns 1, press S2 and get 2, press S3 and get 4, press S4 and get 8, S5=16, S6=32, S7=64, and S8 returns 128
+ 
+  // check for preset program buttons 5th 6th 7th 8th buttons from left
+  // when those are pressed the load increments are ignored
+  if (button == 16)
+  {
+    program = 1;
+    timerSinceStart = 0;
+    Serial.println("Program = 1");
+    return;
+  }
+  else if (button == 32)
+  {
+    program = 2;
+    timerSinceStart = 0;
+    Serial.println("Program = 2");
+    return;
+  }
+  else if (button == 64)
+  {
+    program = 3;
+    timerSinceStart = 0;
+    Serial.println("Program = 3");
+    return;
+  }
+  else if (button == 128)
+  {
+    program = 4;
+    timerSinceStart = 0;
+    Serial.println("Program = 4");
+    return;
+  }
+
   
   // change load value
   if (button == SWITCH_LOAD_INCREASE)
   {
     currentLoadValue +=1;
+    sprintf(workString,"Load increase = %d",currentLoadValue);
+    
   }
   if (button == SWITCH_LOAD_DECREASE)
   {
     currentLoadValue -=1;
+    sprintf(workString,"Load increase = %d",currentLoadValue);
   }
+  Serial.println(workString);
   // limit the load value to valid range
   if (currentLoadValue > NUM_RELAY) currentLoadValue = NUM_RELAY;
   if (currentLoadValue < 0) currentLoadValue = 0;
