@@ -7,7 +7,7 @@ Project to create an arduino controlled turbo trainer upgrade
      - output for LEDs on TM1638 board to show resistance load setting
     
      future upgrade:
-         - measure and display the power being generated ( power = current * voltage) but need way of saefly measuring from arduino (voltage devider/shunt etc?)
+         - measure and display the power being generated ( power = current * voltage) but need way of saefly measuring from arduino (see https://www.instructables.com/ARDUINO-ENERGY-METER/)
          - way to load excercise programs, or even a few presets, selectabel via another button
          - connection to ANT+ to integrate to zwift if possible
          - rear wheel rpm to data log equivallent distance travelled, and view on a display in real time
