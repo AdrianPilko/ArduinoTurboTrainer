@@ -32,11 +32,14 @@ unsigned long timerSinceStart = 0;
 #define RELAY_4_PIN 11
 #define NUM_RELAY 4
 
+#define SOFTWARE_ISSUE_NUM 2
+
 int currentLoadValue = 0;
 
 // the setup function runs once when you press reset or power the board
 void setup() 
 {
+    char workString[9];
   for (int i = RELAY_1_PIN; i <= NUM_RELAY+RELAY_1_PIN;i++)
   {
      pinMode(i, OUTPUT);
@@ -44,6 +47,9 @@ void setup()
   }
   Serial.begin(9600);
   module.displayBegin();
+  sprintf(workString, "swr=%d", SOFTWARE_ISSUE_NUM);
+  module.displayText(workString);
+  delay(2000);
   module.reset();
 }
 
@@ -240,12 +246,14 @@ void press(int button)
   if (button == SWITCH_LOAD_INCREASE)
   {
     currentLoadValue +=1;
+    program = 0; // reset program to manual control
     sprintf(workString,"Load increase = %d",currentLoadValue);
     
   }
   if (button == SWITCH_LOAD_DECREASE)
   {
     currentLoadValue -=1;
+    program = 0; // reset program manual control
     sprintf(workString,"Load increase = %d",currentLoadValue);
   }
   Serial.println(workString);
