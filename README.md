@@ -2,7 +2,7 @@
 Project to create an arduino controlled turbo trainer upgrade
 
  control for turbo trainer
-     - support for 4 relays, I have opto-isolated block of 4 on same pcd, with seperate relay power supply
+     - support for 4 relays, I have opto-isolated block of 4 on same pcb, with seperate relay power supply
      - TM1638 board with 7segment display and buttons increase/decrease number of relays on, this will switch in and out the power resistor loads on which are connected to the turbo trainer generator circuit
      - output for LEDs on TM1638 board to show resistance load setting
     
