@@ -32,14 +32,13 @@ unsigned long timerSinceStart = 0;
 #define RELAY_4_PIN 11
 #define NUM_RELAY 4
 
-#define SOFTWARE_ISSUE_NUM 2
+#define SOFTWARE_ISSUE_NUM 3
 
 int currentLoadValue = 0;
 
-// the setup function runs once when you press reset or power the board
 void setup() 
 {
-    char workString[9];
+  char workString[9];
   for (int i = RELAY_1_PIN; i <= NUM_RELAY+RELAY_1_PIN;i++)
   {
      pinMode(i, OUTPUT);
@@ -80,9 +79,11 @@ void loop()
 
   // Debounce button press
   if (millis() - lastFire < 200) return;
-  lastFire = millis();
 
-  timerSinceStart += millis();
+  //add time since last here to timerSinceStart for exercise program progression 
+  timerSinceStart += millis() - lastFire;
+  
+  lastFire = millis();
 
   // handle update currentLoadValue after press, or do other stuff later to use other buttons
   press(buttons);
@@ -94,7 +95,7 @@ void loop()
     case 1 : NormalProgram(); break;
     case 2 : HITProgram(); break;
     case 3 : HardProgram(); break;
-    case 4 : LongMixedProgram(); break;
+    case 4 : LongFairlyHardProgram(); break;
     default: break;
   }
   
@@ -183,7 +184,7 @@ void HITProgram()
 
 void HardProgram()
 {
-  // 15minute total
+   // 15minute total
    // 2minute low => 2minutes medium power => 30second max => 1minutes medium => 30seconds max => 1minute medium => 30seconds max => 2minutes low
    if (timerSinceStart < 2*MINUTES)
    {
@@ -191,7 +192,7 @@ void HardProgram()
    }
    else if (timerSinceStart < 15*MINUTES)
    {
-      currentLoadValue = 3;
+      currentLoadValue = 4;
    }
    else 
    {
@@ -199,10 +200,16 @@ void HardProgram()
    }
 }
 
-void LongMixedProgram()
+void LongFairlyHardProgram()
 {
-  // not yet defined
-  currentLoadValue = 2;
+   if (timerSinceStart < 25*MINUTES)
+   {
+      currentLoadValue = 3;
+   }
+   else 
+   {
+      currentLoadValue = 1;
+   }
 }
 
 void press(int button) 
