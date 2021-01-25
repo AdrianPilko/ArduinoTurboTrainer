@@ -12,18 +12,22 @@ bool freq = false;
 //Constructor object (GPIO STB , GPIO CLOCK , GPIO DIO, use high freq MCU)
 TM1638plus module(STROBE_PIN, CLOCK_PIN, DATA_PIN, freq);
 
+//#define TEST_PROG
 
 #define SWITCH_LOAD_INCREASE 2
 #define SWITCH_LOAD_DECREASE 1
 
 byte buttons;
-int program = 0;
+byte lastButton = 0;
+
+int program = 1;
 // number of time units in 1 minute
-#define MINUTES (60 * 1000)
-#define SECONDS (1000)
+unsigned long MINUTES = (60 * 1000);
+unsigned long SECONDS = (1000);
 
 unsigned long lastFire = 0;
 unsigned long timerSinceStart = 0;
+unsigned long progStart = 0;
 
 // relay output pins
 #define RELAY_1_PIN 8
@@ -32,7 +36,7 @@ unsigned long timerSinceStart = 0;
 #define RELAY_4_PIN 11
 #define NUM_RELAY 4
 
-#define SOFTWARE_ISSUE_NUM 3
+#define SOFTWARE_ISSUE_NUM 4
 
 int currentLoadValue = 0;
 
@@ -48,8 +52,13 @@ void setup()
   module.displayBegin();
   sprintf(workString, "swr=%d", SOFTWARE_ISSUE_NUM);
   module.displayText(workString);
-  delay(2000);
+  delay(500);
   module.reset();
+
+  //default program setting 
+  program = 1;
+  progStart = millis();
+  Serial.println("Starting Program = 1");
 }
 
 
@@ -73,34 +82,39 @@ void disableAllRelays()
  
 void loop()
 {
-  char workString[9];
+  char workString[32];
 
   buttons=module.readButtons();
-
+  
   // Debounce button press
   if (millis() - lastFire < 200) return;
-
-  //add time since last here to timerSinceStart for exercise program progression 
-  timerSinceStart += millis() - lastFire;
-  
   lastFire = millis();
-
-  // handle update currentLoadValue after press, or do other stuff later to use other buttons
-  press(buttons);
+ 
+  //add time since last here to timerSinceStart for exercise program progression 
+  timerSinceStart = millis() - progStart;
+  
+  // handle update currentLoadValue after press, only if the buttons changed, or do other stuff later to use other buttons
+  if (lastButton != buttons)
+  {
+    press(buttons);
+  }
+  
+  lastButton = buttons;
 
   // update program state
   switch (program)
   {
     case 0 : break;
-    case 1 : NormalProgram(); break;
+    case 1 : DefaultProgram(); break;
     case 2 : HITProgram(); break;
     case 3 : HardProgram(); break;
     case 4 : LongFairlyHardProgram(); break;
     default: break;
   }
   
-  sprintf(workString, "LD=%dPro%d", currentLoadValue,program);
-  module.displayText(workString); 
+  sprintf(workString, "Ld=%dPr=%d", currentLoadValue,program);
+  module.displayText(workString);
+    
   module.setLED(currentLoadValue, 1);
   module.setLED(currentLoadValue+1, 0);
   if (currentLoadValue-1 >= 0) module.setLED(currentLoadValue-1, 0);
@@ -118,30 +132,28 @@ void loop()
 
 // exercise programs, these are built in presets different resistance profiles 
 
-void NormalProgram()
+void DefaultProgram()
 {
    // 18minute total
-   // 3minute low => 5minutes medium power => 2minute high => 5minutes medium => 3minutes low
-   if (timerSinceStart < 3*MINUTES)
-   {
+   if (timerSinceStart < 1*MINUTES)
       currentLoadValue = 1;
-   }
+   else if (timerSinceStart < 2*MINUTES)
+      currentLoadValue = 2;
    else if (timerSinceStart < 8*MINUTES)
-   {
-      currentLoadValue = 2;
-   }
-   else if (timerSinceStart < 10*MINUTES)
-   {
       currentLoadValue = 3;
-   }
-   else if (timerSinceStart < 15*MINUTES)
-   {
+   else if (timerSinceStart < 12*MINUTES)
+      currentLoadValue = 4;
+   else if (timerSinceStart < 13*MINUTES)
       currentLoadValue = 2;
-   }
-   else if (timerSinceStart < 18*MINUTES)
-   {
-      currentLoadValue = 1;
-   }
+   else if (timerSinceStart < 14*MINUTES)
+      currentLoadValue = 3;
+   else if (timerSinceStart < 19*MINUTES)
+      currentLoadValue = 2;
+   else if (timerSinceStart < 22*MINUTES)
+      currentLoadValue = 3;
+   else if (timerSinceStart < 26*MINUTES)
+      currentLoadValue = 2;
+   else currentLoadValue = 0;
 }
 
 void HITProgram()
@@ -222,28 +234,28 @@ void press(int button)
   if (button == 16)
   {
     program = 1;
-    timerSinceStart = 0;
+    progStart = millis();
     Serial.println("Program = 1");
     return;
   }
   else if (button == 32)
   {
     program = 2;
-    timerSinceStart = 0;
+    progStart = millis();
     Serial.println("Program = 2");
     return;
   }
   else if (button == 64)
   {
     program = 3;
-    timerSinceStart = 0;
+    progStart = millis();
     Serial.println("Program = 3");
     return;
   }
   else if (button == 128)
   {
     program = 4;
-    timerSinceStart = 0;
+    progStart = millis();
     Serial.println("Program = 4");
     return;
   }
